@@ -1,5 +1,6 @@
 package com.sahil.project.StaySphere.entity;
 
+import com.sahil.project.StaySphere.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
