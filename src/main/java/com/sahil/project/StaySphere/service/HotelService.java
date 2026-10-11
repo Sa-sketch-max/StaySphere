@@ -1,6 +1,7 @@
 package com.sahil.project.StaySphere.service;
 
 import com.sahil.project.StaySphere.dto.HotelDto;
+import jakarta.transaction.Transactional;
 
 public interface HotelService {
     HotelDto createNewHotel(HotelDto hotelDto);
@@ -10,4 +11,7 @@ public interface HotelService {
     HotelDto updateHotelById(Long id, HotelDto hotelDto);
 
     void deleteHotelById(Long id);
+
+    @Transactional
+    void activateHotel(Long hotelId);
 }

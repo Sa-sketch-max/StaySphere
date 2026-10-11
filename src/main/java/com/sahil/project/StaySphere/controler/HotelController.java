@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/admin/hotels")
 @RequiredArgsConstructor
 @Slf4j
-public class HotelController {
+public class  HotelController {
     private final HotelService hotelService;
 
     @PostMapping
@@ -37,6 +37,12 @@ public class HotelController {
     @DeleteMapping("/{hotelId}")
     public ResponseEntity<Void> deleteHotelById(@PathVariable Long hotelId) {
         hotelService.deleteHotelById(hotelId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{hotelId}")
+    public ResponseEntity<Void> activateHotel(@PathVariable Long hotelId) {
+        hotelService.activateHotel(hotelId);
         return ResponseEntity.noContent().build();
     }
 }

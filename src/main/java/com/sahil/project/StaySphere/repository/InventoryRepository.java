@@ -1,4 +1,11 @@
 package com.sahil.project.StaySphere.repository;
 
-public interface InventoryRepository {
+import com.sahil.project.StaySphere.entity.Inventory;
+import com.sahil.project.StaySphere.entity.Room;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.time.LocalDate;
+
+public interface InventoryRepository extends JpaRepository<Inventory, Long> {
+    void deleteByDateAfterAndRoom(LocalDate date, Room room);
 }
