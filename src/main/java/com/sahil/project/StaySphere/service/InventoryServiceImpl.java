@@ -1,15 +1,25 @@
 package com.sahil.project.StaySphere.service;
 
+import com.sahil.project.StaySphere.dto.HotelDto;
+import com.sahil.project.StaySphere.dto.HotelPriceDto;
+import com.sahil.project.StaySphere.dto.HotelSearchRequest;
+import com.sahil.project.StaySphere.entity.Hotel;
+import com.sahil.project.StaySphere.entity.HotelMinPriceRepository;
 import com.sahil.project.StaySphere.entity.Inventory;
 import com.sahil.project.StaySphere.entity.Room;
 import com.sahil.project.StaySphere.repository.InventoryRepository;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -17,6 +27,8 @@ import java.time.LocalDate;
 
 public class InventoryServiceImpl implements InventoryService {
     private final InventoryRepository inventoryRepository;
+    private final ModelMapper modelMapper;
+    private final HotelMinPriceRepository hotelMinPriceRepository;
 
     @Override
     public void initializeRoomForAYear(Room room) {
@@ -42,7 +54,20 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public void deleteFutureInventories(Room room) {
-        LocalDate today = LocalDate.now();
-        inventoryRepository.deleteByDateAfterAndRoom(today, room);
+
+        inventoryRepository.deleteByRoom(room);
+    }
+
+    @Override
+    public Page<HotelPriceDto> searchHotels(HotelSearchRequest hotelSearchRequest) {
+        Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
+
+        long dateCount = ChronoUnit.DAYS.between(hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate()) + 1;
+
+        Page<HotelPriceDto> hotelPage = hotelMinPriceRepository.findHotelsWithAvailableInventory(hotelSearchRequest.getCity(),
+                hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate(),
+                hotelSearchRequest.getRoomCount(), dateCount, pageable);
+
+        return hotelPage;
     }
 }
