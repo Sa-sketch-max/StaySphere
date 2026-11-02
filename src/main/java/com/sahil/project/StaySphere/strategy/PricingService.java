@@ -1,9 +1,11 @@
 package com.sahil.project.StaySphere.strategy;
 
 import com.sahil.project.StaySphere.entity.Inventory;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+@Service
 public class PricingService {
 
     public BigDecimal calculateDynamicPricing(Inventory inventory) {

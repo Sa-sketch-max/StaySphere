@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-@Service
+
 @AllArgsConstructor
 public class HolidaypricingStrategy implements PricingStrategy {
 

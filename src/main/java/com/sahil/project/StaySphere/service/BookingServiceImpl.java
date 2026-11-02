@@ -2,7 +2,6 @@
 package com.sahil.project.StaySphere.service;
 
 import com.sahil.project.StaySphere.dto.BookingDto;
-import com.sahil.project.StaySphere.dto.BookingRequest;
 import com.sahil.project.StaySphere.dto.GuestDto;
 import com.sahil.project.StaySphere.entity.Booking;
 import com.sahil.project.StaySphere.entity.Guest;
@@ -18,17 +17,18 @@ import com.sahil.project.StaySphere.repository.HotelRepository;
 import com.sahil.project.StaySphere.repository.InventoryRepository;
 import com.sahil.project.StaySphere.repository.RoomRepository;
 import com.sahil.project.StaySphere.repository.UserRepository;
+import com.sahil.project.StaySphere.dto.BookingRequest;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -44,9 +44,26 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
 
-    @Transactional
+
+
     @Override
+    @Transactional
     public BookingDto initialiseBooking(BookingRequest bookingRequest) {
+
+        if (bookingRequest.getCheclInDate() == null
+                || bookingRequest.getCheclOutDate() == null
+                || !bookingRequest.getCheclOutDate()
+                .isAfter(bookingRequest.getCheclInDate())) {
+            throw new IllegalArgumentException(
+                    "Check-out date must be after check-in date"
+            );
+        }
+
+        if (bookingRequest.getRoomsCount() <= 0) {
+            throw new IllegalArgumentException(
+                    "Rooms count must be greater than zero"
+            );
+        }
 
         Hotel hotel = hotelRepository.findById(
                 bookingRequest.getHotelId()
@@ -66,18 +83,10 @@ public class BookingServiceImpl implements BookingService {
                 )
         );
 
-        if (bookingRequest.getCheclInDate() == null
-                || bookingRequest.getCheclOutDate() == null
-                || !bookingRequest.getCheclOutDate()
-                .isAfter(bookingRequest.getCheclInDate())) {
+        if (room.getHotel() == null
+                || !room.getHotel().getId().equals(hotel.getId())) {
             throw new IllegalArgumentException(
-                    "Check-out date must be after check-in date"
-            );
-        }
-
-        if (bookingRequest.getRoomsCount() <= 0) {
-            throw new IllegalArgumentException(
-                    "Rooms count must be greater than zero"
+                    "Room does not belong to the selected hotel"
             );
         }
 
@@ -89,16 +98,25 @@ public class BookingServiceImpl implements BookingService {
                         bookingRequest.getRoomsCount()
                 );
 
-        long daysCount = ChronoUnit.DAYS.between(
+        long nights = ChronoUnit.DAYS.between(
                 bookingRequest.getCheclInDate(),
                 bookingRequest.getCheclOutDate()
         );
 
-        if (inventoryList.size() != daysCount) {
+        if (inventoryList.size() != nights) {
             throw new IllegalStateException(
                     "Room is not available for the selected dates"
             );
         }
+
+        BigDecimal totalAmount = inventoryList.stream()
+                .map(Inventory::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .multiply(
+                        BigDecimal.valueOf(
+                                bookingRequest.getRoomsCount()
+                        )
+                );
 
         for (Inventory inventory : inventoryList) {
             inventory.setBookedCount(
@@ -109,10 +127,15 @@ public class BookingServiceImpl implements BookingService {
 
         inventoryRepository.saveAll(inventoryList);
 
-        // TODO: Replace with the authenticated user.
-        User user = userRepository.getReferenceById(1L);
+        // TEMPORARY: Replace with the authenticated user
+        // when Spring Security authentication is implemented.
+        User user = userRepository.findById(1L)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with id 1"
+                        )
+                );
 
-        // TODO: Calculate the actual booking price.
         Booking booking = Booking.builder()
                 .bookingStatus(BookingStatus.RESERVED)
                 .hotel(hotel)
@@ -121,20 +144,23 @@ public class BookingServiceImpl implements BookingService {
                 .checkOutDate(bookingRequest.getCheclOutDate())
                 .user(user)
                 .roomsCount(bookingRequest.getRoomsCount())
-                .amount(BigDecimal.TEN)
+                .amount(totalAmount)
                 .build();
 
         booking = bookingRepository.save(booking);
 
+        log.info("Booking created with id {}", booking.getId());
+
         return modelMapper.map(booking, BookingDto.class);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public BookingDto addGuests(
             Long bookingId,
             List<GuestDto> guestDtoList
     ) {
+
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -144,7 +170,7 @@ public class BookingServiceImpl implements BookingService {
 
         if (hasBookingExpired(booking)) {
             throw new IllegalStateException(
-                    "Booking has already expired"
+                    "Booking has expired"
             );
         }
 
@@ -161,11 +187,16 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (booking.getGuests() == null) {
-            booking.setGuests(new ArrayList<>());
+            booking.setGuests(new HashSet<>());
         }
 
-        // TODO: Replace with the authenticated user.
-        User user = userRepository.getReferenceById(1L);
+        // TEMPORARY: Replace with the authenticated user.
+        User user = userRepository.findById(1L)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User not found with id 1"
+                        )
+                );
 
         for (GuestDto guestDto : guestDtoList) {
             Guest guest = modelMapper.map(guestDto, Guest.class);
@@ -181,7 +212,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     public boolean hasBookingExpired(Booking booking) {
-        return booking.getCreatedAt()
+        return booking.getCreatedAt() != null
+                && booking.getCreatedAt()
                 .plusMinutes(10)
                 .isBefore(LocalDateTime.now());
     }

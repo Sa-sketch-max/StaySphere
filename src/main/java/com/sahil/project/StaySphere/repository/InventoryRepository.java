@@ -39,7 +39,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     @Query("""
            SELECT i
-           FROM inventory i
+           FROM Inventory i
            WHERE i.room.id = :roomId
            AND i.date BETWEEN :startDate AND :endDate
            AND i.closed = false

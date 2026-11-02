@@ -1,13 +1,18 @@
 package com.sahil.project.StaySphere.service;
 
 import com.sahil.project.StaySphere.entity.Hotel;
+import com.sahil.project.StaySphere.entity.HotelMinPrice;
 import com.sahil.project.StaySphere.entity.Inventory;
+import com.sahil.project.StaySphere.repository.HotelMinPriceRepository;
 import com.sahil.project.StaySphere.repository.HotelRepository;
 import com.sahil.project.StaySphere.repository.InventoryRepository;
+import com.sahil.project.StaySphere.strategy.PricingService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.Schedules;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,10 +27,12 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Slf4j
 public class PricingUpdateService {
+    private final HotelMinPriceRepository hotelMinPriceRepository;
     private final HotelRepository hotelRepository;
     private final InventoryRepository inventoryRepository;
+    private final PricingService pricingService;
 
-
+    @Scheduled(cron = "0 0 * * * * ")
     public void updatePrices() {
         int page = 0;
         int batchSize = 100;
@@ -66,7 +73,7 @@ public class PricingUpdateService {
 
 
         // Compute minimum price per day for the hotel
-        Map<LocalDate, BigDecimal> dailyMinPrices = inventories.stream()
+        Map<LocalDate, BigDecimal> dailyMinPrices = inventoryList.stream()
                 .collect(Collectors.groupingBy(
                         Inventory::getDate,
                         Collectors.mapping(
@@ -81,19 +88,19 @@ public class PricingUpdateService {
                 ));
 
 // Prepare HotelPrice entities
-        List<HotelPrice> hotelPrices = new ArrayList<>();
+        List<HotelMinPrice> hotelPrices = new ArrayList<>();
 
         dailyMinPrices.forEach((date, price) -> {
-            HotelPrice hotelPrice = hotelPriceRepository
+            HotelMinPrice hotelPrice = hotelMinPriceRepository
                     .findByHotelAndDate(hotel, date)
-                    .orElse(new HotelPrice(hotel, date));
+                    .orElse(new HotelMinPrice(hotel, date));
 
             hotelPrice.setPrice(price);
             hotelPrices.add(hotelPrice);
         });
 
 // Save all HotelPrice entities in bulk
-        hotelPriceRepository.saveAll(hotelPrices);
+        hotelMinPriceRepository.saveAll(hotelPrices);
     }
 
     private void updateInventoryPrices(List<Inventory> inventoryList) {

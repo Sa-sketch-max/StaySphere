@@ -3,12 +3,11 @@ package com.sahil.project.StaySphere.service;
 import com.sahil.project.StaySphere.dto.HotelDto;
 import com.sahil.project.StaySphere.dto.HotelPriceDto;
 import com.sahil.project.StaySphere.dto.HotelSearchRequest;
-import com.sahil.project.StaySphere.entity.Hotel;
-import com.sahil.project.StaySphere.entity.HotelMinPriceRepository;
+import com.sahil.project.StaySphere.entity.HotelMinPrice;
 import com.sahil.project.StaySphere.entity.Inventory;
 import com.sahil.project.StaySphere.entity.Room;
+import com.sahil.project.StaySphere.repository.HotelMinPriceRepository;
 import com.sahil.project.StaySphere.repository.InventoryRepository;
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -30,6 +29,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final ModelMapper modelMapper;
     private final HotelMinPriceRepository hotelMinPriceRepository;
 
+
     @Override
     public void initializeRoomForAYear(Room room) {
         LocalDate today = LocalDate.now();
@@ -40,6 +40,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .hotel(room.getHotel())
                     .room(room)
                     .bookedCount(0)
+                    .reservedCount(0)
                     .city(room.getHotel().getCity())
                     .date(today)
                     .price(room.getBasePrice())
@@ -49,8 +50,26 @@ public class InventoryServiceImpl implements InventoryService {
                     .build();
 
             inventoryRepository.save(inventory);
+
+            // Create or update the minimum price for this hotel and date
+            LocalDate finalToday = today;
+            HotelMinPrice minPrice = hotelMinPriceRepository
+                    .findByHotelAndDate(room.getHotel(), today)
+                    .orElseGet(() -> {
+                        HotelMinPrice newMinPrice =
+                                new HotelMinPrice(room.getHotel(), finalToday);
+                        newMinPrice.setPrice(room.getBasePrice());
+                        return newMinPrice;
+                    });
+
+            if (room.getBasePrice().compareTo(minPrice.getPrice()) < 0) {
+                minPrice.setPrice(room.getBasePrice());
+            }
+
+            hotelMinPriceRepository.save(minPrice);
         }
     }
+
 
     @Override
     public void deleteFutureInventories(Room room) {

@@ -1,12 +1,20 @@
+
 package com.sahil.project.StaySphere.service;
 
 import com.sahil.project.StaySphere.dto.BookingDto;
 import com.sahil.project.StaySphere.dto.BookingRequest;
-import jakarta.transaction.Transactional;
+import com.sahil.project.StaySphere.dto.GuestDto;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 public interface BookingService {
-    BookingDto initialiseBooking();
+
+    BookingDto initialiseBooking(BookingRequest bookingRequest);
 
     @Transactional
-    BookingDto initialiseBooking(BookingRequest bookingRequest);
+    BookingDto addGuests(
+            Long bookingId,
+            List<GuestDto> guestDtoList
+    );
 }
