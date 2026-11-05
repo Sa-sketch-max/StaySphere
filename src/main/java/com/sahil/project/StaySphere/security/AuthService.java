@@ -6,6 +6,7 @@ import com.sahil.project.StaySphere.dto.SignUpRequestDto;
 import com.sahil.project.StaySphere.dto.UserDto;
 import com.sahil.project.StaySphere.entity.User;
 import com.sahil.project.StaySphere.entity.enums.Role;
+import com.sahil.project.StaySphere.exception.UserAlreadyExistsException;
 import com.sahil.project.StaySphere.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -34,7 +35,9 @@ import java.util.Set;
                     .orElse(null);
 
             if (user != null) {
-                throw new RuntimeException("User is already present with same email-id");
+                throw new UserAlreadyExistsException(
+                        "User is already registered with this email"
+                );
             }
 
             User newUser = modelMapper.map(signUpRequestDto, User.class);
@@ -67,6 +70,20 @@ import java.util.Set;
         arr[1] = jwtService.generateRefreshToken(user);
 
         return arr;
+    }
+
+    public String refreshAccessToken(String refreshToken) {
+
+        if (!"REFRESH".equals(jwtService.getTokenType(refreshToken))) {
+            throw new RuntimeException("Invalid refresh token");
+        }
+
+        Long userId = jwtService.getUserIdFromToken(refreshToken);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return jwtService.generateAccessToken(user);
     }
     }
 

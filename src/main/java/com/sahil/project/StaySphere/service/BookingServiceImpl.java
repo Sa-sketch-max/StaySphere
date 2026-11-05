@@ -30,6 +30,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @Slf4j
@@ -98,10 +100,15 @@ public class BookingServiceImpl implements BookingService {
                         bookingRequest.getRoomsCount()
                 );
 
+
+
         long nights = ChronoUnit.DAYS.between(
                 bookingRequest.getCheclInDate(),
                 bookingRequest.getCheclOutDate()
         );
+
+        System.out.println("INVENTORY RECORDS FOUND: " + inventoryList.size());
+        System.out.println("EXPECTED NIGHTS: " + nights);
 
         if (inventoryList.size() != nights) {
             throw new IllegalStateException(
@@ -127,14 +134,11 @@ public class BookingServiceImpl implements BookingService {
 
         inventoryRepository.saveAll(inventoryList);
 
-        // TEMPORARY: Replace with the authenticated user
-        // when Spring Security authentication is implemented.
-        User user = userRepository.findById(1L)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id 1"
-                        )
-                );
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User user = (User) authentication.getPrincipal();
 
         Booking booking = Booking.builder()
                 .bookingStatus(BookingStatus.RESERVED)

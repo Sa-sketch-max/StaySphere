@@ -26,9 +26,10 @@ public class JWTService {
     public String generateAccessToken(User user) {
         return Jwts.builder()
                 .subject(user.getId().toString())
+                .claim("tokenType", "ACCESS")
                 .issuedAt(new Date())
                 .expiration(new Date(
-                        System.currentTimeMillis() + 1000L * 60 * 60 * 10
+                        System.currentTimeMillis() + 1000L * 60 * 15
                 ))
                 .signWith(getSecretKey())
                 .compact();
@@ -37,21 +38,31 @@ public class JWTService {
     public String generateRefreshToken(User user) {
         return Jwts.builder()
                 .subject(user.getId().toString())
+                .claim("tokenType", "REFRESH")
                 .issuedAt(new Date())
                 .expiration(new Date(
-                        System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 30
+                        System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7
                 ))
                 .signWith(getSecretKey())
                 .compact();
     }
 
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parser()
+        return Long.valueOf(
+                getClaimsFromToken(token).getSubject()
+        );
+    }
+
+    public String getTokenType(String token) {
+        return getClaimsFromToken(token)
+                .get("tokenType", String.class);
+    }
+
+    public Claims getClaimsFromToken(String token) {
+        return Jwts.parser()
                 .verifyWith(getSecretKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-
-        return Long.valueOf(claims.getSubject());
     }
 }
