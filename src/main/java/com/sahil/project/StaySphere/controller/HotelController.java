@@ -1,7 +1,6 @@
-package com.sahil.project.StaySphere.controler;
+package com.sahil.project.StaySphere.controller;
 
 import com.sahil.project.StaySphere.dto.HotelDto;
-import com.sahil.project.StaySphere.entity.Hotel;
 import com.sahil.project.StaySphere.service.HotelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

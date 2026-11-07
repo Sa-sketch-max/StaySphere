@@ -1,4 +1,4 @@
-package com.sahil.project.StaySphere.controler;
+package com.sahil.project.StaySphere.controller;
 
 import com.sahil.project.StaySphere.dto.BookingDto;
 import com.sahil.project.StaySphere.dto.BookingRequest;

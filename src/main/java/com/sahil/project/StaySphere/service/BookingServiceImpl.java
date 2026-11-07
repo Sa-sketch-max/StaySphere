@@ -126,8 +126,8 @@ public class BookingServiceImpl implements BookingService {
                 );
 
         for (Inventory inventory : inventoryList) {
-            inventory.setBookedCount(
-                    inventory.getBookedCount()
+            inventory.setReservedCount(
+                    inventory.getReservedCount()
                             + bookingRequest.getRoomsCount()
             );
         }

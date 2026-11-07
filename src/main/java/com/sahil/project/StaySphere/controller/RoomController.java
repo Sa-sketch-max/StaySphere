@@ -1,11 +1,8 @@
-package com.sahil.project.StaySphere.controler;
+package com.sahil.project.StaySphere.controller;
 
-import com.sahil.project.StaySphere.dto.HotelDto;
 import com.sahil.project.StaySphere.dto.RoomDto;
-import com.sahil.project.StaySphere.entity.Room;
 import com.sahil.project.StaySphere.service.RoomService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

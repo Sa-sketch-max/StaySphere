@@ -34,4 +34,13 @@ public class Payment {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Column(unique = true)
+    private String razorpayOrderId;
+
+    @Column(unique = true)
+    private String razorpayPaymentId;
+
+    @Column(unique = true)
+    private String razorpayRefundId;
 }
