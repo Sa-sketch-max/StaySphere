@@ -52,10 +52,9 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingDto initialiseBooking(BookingRequest bookingRequest) {
 
-        if (bookingRequest.getCheclInDate() == null
-                || bookingRequest.getCheclOutDate() == null
-                || !bookingRequest.getCheclOutDate()
-                .isAfter(bookingRequest.getCheclInDate())) {
+        if (bookingRequest.getCheckInDate() == null
+                || bookingRequest.getCheckOutDate() == null
+                || !bookingRequest.getCheckOutDate().isAfter(bookingRequest.getCheckInDate())) {
             throw new IllegalArgumentException(
                     "Check-out date must be after check-in date"
             );
@@ -95,16 +94,16 @@ public class BookingServiceImpl implements BookingService {
         List<Inventory> inventoryList =
                 inventoryRepository.findAndLockAvailableInventory(
                         room.getId(),
-                        bookingRequest.getCheclInDate(),
-                        bookingRequest.getCheclOutDate(),
+                        bookingRequest.getCheckInDate(),
+                        bookingRequest.getCheckOutDate(),
                         bookingRequest.getRoomsCount()
                 );
 
 
 
         long nights = ChronoUnit.DAYS.between(
-                bookingRequest.getCheclInDate(),
-                bookingRequest.getCheclOutDate()
+                bookingRequest.getCheckInDate(),
+                bookingRequest.getCheckOutDate()
         );
 
         System.out.println("INVENTORY RECORDS FOUND: " + inventoryList.size());
@@ -144,8 +143,8 @@ public class BookingServiceImpl implements BookingService {
                 .bookingStatus(BookingStatus.RESERVED)
                 .hotel(hotel)
                 .room(room)
-                .checkInDate(bookingRequest.getCheclInDate())
-                .checkOutDate(bookingRequest.getCheclOutDate())
+                .checkInDate(bookingRequest.getCheckInDate())
+                .checkOutDate(bookingRequest.getCheckOutDate())
                 .user(user)
                 .roomsCount(bookingRequest.getRoomsCount())
                 .amount(totalAmount)

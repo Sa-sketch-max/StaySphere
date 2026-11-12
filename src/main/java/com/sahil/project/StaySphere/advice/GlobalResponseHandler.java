@@ -11,8 +11,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import java.util.List;
 
 @RestControllerAdvice
-public class GlobalResponseHandler
-        implements ResponseBodyAdvice<Object> {
+public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(
@@ -30,13 +29,14 @@ public class GlobalResponseHandler
             ServerHttpRequest request,
             ServerHttpResponse response) {
 
-        List<String> allowedRoutes =
-                List.of("/v3/api-docs", "/actuator");
+        List<String> allowedRoutes = List.of(
+                "/v3/api-docs",
+                "/actuator",
+                "/payments/webhook" // Directly bypasses wrapping for webhooks
+        );
 
         boolean isAllowed = allowedRoutes.stream()
-                .anyMatch(route -> request.getURI()
-                        .getPath()
-                        .contains(route));
+                .anyMatch(route -> request.getURI().getPath().contains(route));
 
         if (body instanceof ApiResponse<?> || isAllowed) {
             return body;

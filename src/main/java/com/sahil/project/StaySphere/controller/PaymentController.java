@@ -8,8 +8,11 @@ import com.sahil.project.StaySphere.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.web.bind.annotation.*;
 
+@EnableMethodSecurity
 @RestController
 @RequestMapping("/payments")
 @RequiredArgsConstructor
@@ -33,5 +36,12 @@ public class PaymentController {
         paymentService.verifyPayment(request);
 
         return ResponseEntity.ok("Payment verified and booking confirmed successfully");
+    }
+
+    @PostMapping("/refund/{paymentId}")
+    @PreAuthorize("hasAnyRole('HOTEL_MANAGER', 'ADMIN')")
+    public ResponseEntity<String> initiateRefund(@PathVariable Long paymentId) throws RazorpayException {
+        paymentService.initiateRefund(paymentId);
+        return ResponseEntity.ok("Refund initiated successfully");
     }
 }

@@ -7,6 +7,7 @@ import com.sahil.project.StaySphere.repository.BookingRepository;
 import com.sahil.project.StaySphere.repository.InventoryRepository;
 import com.sahil.project.StaySphere.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +34,7 @@ import com.sahil.project.StaySphere.entity.User;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -347,9 +350,12 @@ public class PaymentService {
             String razorpayPaymentId
     ) throws RazorpayException {
 
-        Payment payment = paymentRepository
-                .findByRazorpayOrderId(razorpayOrderId)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+        Optional<Payment> optionalPayment = paymentRepository.findByRazorpayOrderId(razorpayOrderId);
+        if (optionalPayment.isEmpty()) {
+            log.warn("Payment record not found for Razorpay Order ID: {}. Webhook skipped.", razorpayOrderId);
+            return;
+        }
+        Payment payment = optionalPayment.get();
 
         Booking booking = bookingRepository
                 .findByPaymentIdForUpdate(payment.getId())
@@ -488,6 +494,65 @@ public class PaymentService {
         }
 
         paymentRepository.save(payment);
+    }
+
+    @Transactional
+    public void processRefundSuccess(String razorpayPaymentId, String razorpayRefundId) {
+        Payment payment = paymentRepository
+                .findByRazorpayPaymentId(razorpayPaymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found for refund confirmation"));
+
+        payment.setRazorpayRefundId(razorpayRefundId);
+        payment.setPaymentStatus(PaymentStatus.REFUNDED);
+        paymentRepository.save(payment);
+
+
+        Booking booking = bookingRepository.findByPayment(payment)
+                .orElseThrow(() -> new RuntimeException("Booking not found for payment ID: "+payment.getId()));
+        if(booking.getBookingStatus() != BookingStatus.CANCELLED) {
+            booking.setBookingStatus(BookingStatus.CANCELLED);
+            bookingRepository.save(booking);
+
+
+            List<Inventory> inventories = inventoryRepository.findAndLockInventoryForBooking(
+                    booking.getRoom().getId(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate()
+            );
+
+            for (Inventory inventory : inventories) {
+                inventory.setBookedCount(
+                        Math.max(0, inventory.getBookedCount() - booking.getRoomsCount())
+                );
+            }
+
+            inventoryRepository.saveAll(inventories);
+
+        }
+    }
+
+    @Transactional
+    public void processRefundFailure(String razorpayPaymentId, String razorpayRefundId) {
+        Payment payment = paymentRepository
+                .findByRazorpayPaymentId(razorpayPaymentId)
+                .orElseThrow(() -> new RuntimeException("Payment not found for refund failure update"));
+
+        if (payment.getPaymentStatus() == PaymentStatus.PENDING) {
+            payment.setPaymentStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+        }
+    }
+
+
+    @Transactional
+    public void processPaymentFailure(String razorpayOrderId) {
+        Payment payment = paymentRepository.findByRazorpayOrderId(razorpayOrderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found for order: " + razorpayOrderId));
+
+        if (payment.getPaymentStatus() == PaymentStatus.PENDING) {
+            payment.setPaymentStatus(PaymentStatus.FAILED);
+            paymentRepository.save(payment);
+        }
     }
 
 }
